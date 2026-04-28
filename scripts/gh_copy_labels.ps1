@@ -1,39 +1,39 @@
 # gh_copy_labels.ps1
-# neko32/tanunekolab_adr の issues label を指定したリポジトリにコピーする
+# Copy issue labels from neko32/tanunekolab_adr to a specified repository
 #
 # Usage: .\gh_copy_labels.ps1 <target_repo_name>
 # Example: .\gh_copy_labels.ps1 nekokan_music
 
 param(
-    [Parameter(Mandatory = $true, HelpMessage = "コピー先のリポジトリ名 (neko32/<name> の <name> 部分)")]
+    [Parameter(Mandatory = $true, HelpMessage = "Target repository name (the <name> part of neko32/<name>)")]
     [string]$TargetRepo
 )
 
 $SOURCE_REPO = "neko32/tanunekolab_adr"
 $TARGET_REPO = "neko32/$TargetRepo"
 
-Write-Host "コピー元: $SOURCE_REPO"
-Write-Host "コピー先: $TARGET_REPO"
+Write-Host "Source: $SOURCE_REPO"
+Write-Host "Target: $TARGET_REPO"
 Write-Host ""
 
-# コピー先リポジトリの存在確認
-$repoCheck = gh repo view $TARGET_REPO 2>&1
+# Verify target repository exists
+$repoCheck = gh repo view $TARGET_REPO
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "リポジトリ '$TARGET_REPO' が見つかりません。リポジトリ名を確認してください。"
+    Write-Error "Repository '$TARGET_REPO' not found. Please check the repository name."
     exit 1
 }
 
-# コピー元のラベル一覧を取得
-Write-Host "ラベル一覧を取得中..."
-$labelsJson = gh label list --repo $SOURCE_REPO --json name,color,description --limit 100 2>&1
+# Fetch label list from source repository
+Write-Host "Fetching labels..."
+$labelsJson = gh label list --repo $SOURCE_REPO --json name,color,description --limit 100
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "ラベル一覧の取得に失敗しました: $labelsJson"
+    Write-Error "Failed to fetch labels: $labelsJson"
     exit 1
 }
 
 $labels = $labelsJson | ConvertFrom-Json
 $total = $labels.Count
-Write-Host "$total 件のラベルが見つかりました。"
+Write-Host "Found $total label(s)."
 Write-Host ""
 
 $success = 0
@@ -44,25 +44,25 @@ foreach ($label in $labels) {
     $color = $label.color
     $description = $label.description
 
-    Write-Host -NoNewline "  [$name] をコピー中... "
+    Write-Host -NoNewline "  Copying [$name]... "
 
-    $result = gh label create "$name" `
+    gh label create "$name" `
         --color "$color" `
         --description "$description" `
         --repo "$TARGET_REPO" `
-        --force 2>&1
+        --force | Out-Null
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "OK"
         $success++
     } else {
-        Write-Host "失敗: $result"
+        Write-Host "FAILED"
         $failed++
     }
 }
 
 Write-Host ""
-Write-Host "完了: 成功 $success 件 / 失敗 $failed 件 (合計 $total 件)"
+Write-Host "Done: $success succeeded / $failed failed (total $total)"
 
 if ($failed -gt 0) {
     exit 1
