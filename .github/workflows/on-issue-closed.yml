@@ -8,6 +8,8 @@ on:
 jobs:
   remove-in-progress:
     uses: neko32/shared-actions/.github/workflows/remove-in-progress-on-close.yml@main
+    permissions:
+      issues: write
     with:
       issue_number: ${{ github.event.issue.number }}
     secrets: inherit
