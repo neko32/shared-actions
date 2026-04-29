@@ -1,0 +1,38 @@
+name: Remove In-Progress Label on Issue Close (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      issue_number:
+        description: "The issue number to process"
+        required: true
+        type: number
+      repo:
+        description: "Repository in owner/repo format. Defaults to caller repository."
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  remove-in-progress-label:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Remove 'in progress' label if present
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          REPO: ${{ inputs.repo != '' && inputs.repo || github.repository }}
+        run: |
+          echo "Checking labels on issue #${ISSUE_NUMBER} in ${REPO}..."
+          labels=$(gh issue view "${ISSUE_NUMBER}" --repo "${REPO}" --json labels --jq '[.labels[].name]')
+          echo "Current labels: ${labels}"
+
+          if echo "${labels}" | jq -e 'map(select(. == "in progress")) | length > 0' > /dev/null; then
+            echo "Found 'in progress' label. Removing it..."
+            gh issue edit "${ISSUE_NUMBER}" --repo "${REPO}" --remove-label "in progress"
+            echo "Successfully removed 'in progress' label from issue #${ISSUE_NUMBER}."
+          else
+            echo "'in progress' label not found on issue #${ISSUE_NUMBER}. Nothing to do."
+          fi

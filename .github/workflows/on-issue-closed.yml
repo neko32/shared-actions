@@ -1,0 +1,13 @@
+name: On Issue Closed
+
+on:
+  issues:
+    types:
+      - closed
+
+jobs:
+  remove-in-progress:
+    uses: neko32/shared-actions/.github/workflows/remove-in-progress-on-close.yml@main
+    with:
+      issue_number: ${{ github.event.issue.number }}
+    secrets: inherit
